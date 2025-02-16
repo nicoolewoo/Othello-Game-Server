@@ -5,8 +5,25 @@ import json
 import socket
 import random
 
+board_weights = [
+  [4, -3, 2, 2, 2, 2, -3, 4],
+  [-3, -4, -1, -1, -1, -1, -4, -3],
+  [2, -1, 1, 0, 0, 1, -1, 2],
+  [2, -1, 0, 1, 1, 0, -1, 2],
+  [2, -1, 0, 1, 1, 0, -1, 2],
+  [2, -1, 1, 0, 0, 1, -1, 2],
+  [-3, -4, -1, -1, -1, -1, -4, -3],
+  [4, -3, 2, 2, 2, 2, -3, 4]
+]
+directions = [(-1, 0), (1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)] 
+
+def simulated_board(move, player, board):
+  sim_board = [row[:] for row in board]
+  sim_board[move[0]][move[1]] = 1
+  # flip_pieces = 
+  return sim_board
+
 def if_valid_move(board, r, c):
-  directions = [(-1, 0), (1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)] 
   for nr, nc in directions:
     x = nr + r
     y = nc + c 
@@ -25,6 +42,13 @@ def if_valid_move(board, r, c):
   return False 
 
 def get_all_moves(player, board): #this bouta be slow af maybe optimize later 
+  """
+  Based on current game state returns an array of all valid moves.
+
+  Parameters:
+  Returns:
+    tuple array 
+  """
   moves = []
   for r in range(len(board)):
     for c in range(len(board[0])):
@@ -33,10 +57,18 @@ def get_all_moves(player, board): #this bouta be slow af maybe optimize later
   return moves
 
 def calculate_score(player, board):
-  score = 0 
-  for row in board:
-    score += row.count(player)
-  return score 
+  """
+  Calculates the current score for the player based on the sum of the static weights and subtracts by the opponents score. 
+  """
+  player1_score = 0 
+  player2_score = 0
+  for r in range(len(board)):
+    for c in range(len(board[0])):
+      if board[r][c] == 1:
+        player1_score += board_weights[r][c]
+      elif board[r][c] == 2:
+        player2_score += board_weights[r][c]
+  return player1_score - player2_score
       
 #should return score, move
 def dfs(board, depth, max, player):
@@ -48,17 +80,19 @@ def dfs(board, depth, max, player):
   turn = None #tracks optimal move
 
   if max: #find highest score 
-    max_score = 0
+    max_score = float('-inf')
     for move in moves:
-      curr_score, _ = dfs(board, depth - 1, False, player)
+      sim_board = simulated_board(move, player, board)
+      curr_score, _ = dfs(sim_board, depth - 1, False, player)
       if curr_score > max_score:
         max_score = curr_score
         turn = move 
     return max_score, turn 
   else: #assumes opponent plays optimally
-    min_score = 65 #the UI had 64 squares i think 
+    min_score = float('inf') #the UI had 64 squares i think 
     for move in moves:
-      curr_score, _ = dfs(board, depth - 1, True, player)
+      sim_board = simulated_board(move, player, board)
+      curr_score, _ = dfs(sim_board, depth - 1, True, player)
       if curr_score < min_score:
         min_score = curr_score
         turn = move 
@@ -66,7 +100,7 @@ def dfs(board, depth, max, player):
 
 #this output feeds into prepare response 
 def get_move(player, board):
-  _, move = dfs(board, 6, True, player)
+  _, move = dfs(board, 3, True, player) #this also slow 
   if move:
     return move
   else:
