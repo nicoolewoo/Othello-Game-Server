@@ -5,8 +5,8 @@ import json
 import socket
 import random
 
-def if_valid(player, board, r, c):
-  directions = [(-1, 0), (1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)] #might b able to optimize here later 
+def if_valid_move(board, r, c):
+  directions = [(-1, 0), (1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)] 
   for nr, nc in directions:
     x = nr + r
     y = nc + c 
@@ -19,33 +19,59 @@ def if_valid(player, board, r, c):
           return True 
         break
       else:
-        print("out of bounds or something else")
         break 
       x += nr
       y += nc 
-
   return False 
+
+def get_all_moves(player, board): #this bouta be slow af maybe optimize later 
+  moves = []
+  for r in range(len(board)):
+    for c in range(len(board[0])):
+      if board[r][c] == 0 and if_valid_move(board, r, c):
+        moves.append([r, c])
+  return moves
+
+def calculate_score(player, board):
+  score = 0 
+  for row in board:
+    score += row.count(player)
+  return score 
       
+#should return score, move
+def dfs(board, depth, max, player):
+  if depth == 0:
+    return calculate_score(player, board), None #if we reach depth limit return the board's score
+  moves = get_all_moves(player, board)
+  if not moves: #if no moves, return current score
+    return calculate_score(player, board), None
+  turn = None #tracks optimal move
 
-
+  if max: #find highest score 
+    max_score = 0
+    for move in moves:
+      curr_score, _ = dfs(board, depth - 1, False, player)
+      if curr_score > max_score:
+        max_score = curr_score
+        turn = move 
+    return max_score, turn 
+  else: #assumes opponent plays optimally
+    min_score = 65 #the UI had 64 squares i think 
+    for move in moves:
+      curr_score, _ = dfs(board, depth - 1, True, player)
+      if curr_score < min_score:
+        min_score = curr_score
+        turn = move 
+    return min_score, turn 
 
 #this output feeds into prepare response 
 def get_move(player, board):
-  # TODO determine valid moves
-  # TODO determine best move
-  options = []
-  row, col = len(board), len(board[0])
-  for r in range(row):
-    for c in range(col):
-      if board[r][c] == 0 and if_valid(player, board, r, c):
-        options.append([r, c])
-  if not options:
-    print("no move")
-    return None 
-  move = random.choice(options)
-  print(f"player {player} move")
-  return move
-
+  _, move = dfs(board, 6, True, player)
+  if move:
+    return move
+  else:
+    return random.choice(get_all_moves(player, board)) #in case fails might not need gotta check later
+ 
 def prepare_response(move):
   response = '{}\n'.format(move).encode()
   print('sending {!r}'.format(response))
