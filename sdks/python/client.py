@@ -4,7 +4,8 @@ import sys
 import json
 import socket
 import random
-
+#static board with weights assigned to each spot.
+#based off this article I found (page 6): https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/miniproject1_vaishu_muthu/Paper/Final_Paper.pdf
 board_weights = [
   [4, -3, 2, 2, 2, 2, -3, 4],
   [-3, -4, -1, -1, -1, -1, -4, -3],
@@ -15,15 +16,39 @@ board_weights = [
   [-3, -4, -1, -1, -1, -1, -4, -3],
   [4, -3, 2, 2, 2, 2, -3, 4]
 ]
+#array storing all possible directions (left, right, diagonal, etc.)
 directions = [(-1, 0), (1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)] 
 
+def flip(sim_board, move, player):
+  """
+  Simulates flipping the appropiate pieces based on the inputted move. 
+  """
+  for nr, nc in directions:
+    x, y = move[0] + nr, move[1] + nc
+    flips = []
+    while 0 <= x < len(sim_board) and 0 <= y < len(sim_board) and sim_board[x][y] not in {0, player}:
+      flips.append((x, y))
+      x += nr
+      y += nc 
+    if 0 <= x < len(sim_board) and 0 <= y < len(sim_board[0]) and sim_board[x][y] == player: 
+      for fx, fy in flips:
+        sim_board[fx][fy] = player
+    sim_board[move[0]][move[1]] = player
+
+
 def simulated_board(move, player, board):
-  sim_board = [row[:] for row in board]
-  sim_board[move[0]][move[1]] = 1
-  # flip_pieces = 
+  """
+  Creates a copy of the current game state board and predicts the next game state based on the inputted move. 
+  """
+  sim_board = [row.copy() for row in board]
+  sim_board[move[0]][move[1]] = player
+  flip(sim_board, move, player)
   return sim_board
 
 def if_valid_move(board, r, c):
+  """
+  Checks if the inputted move is valid based on the current game state. A move is valid if it flanks an opponent piece. 
+  """
   for nr, nc in directions:
     x = nr + r
     y = nc + c 
@@ -41,13 +66,9 @@ def if_valid_move(board, r, c):
       y += nc 
   return False 
 
-def get_all_moves(player, board): #this bouta be slow af maybe optimize later 
+def get_all_moves(player, board):
   """
   Based on current game state returns an array of all valid moves.
-
-  Parameters:
-  Returns:
-    tuple array 
   """
   moves = []
   for r in range(len(board)):
@@ -70,41 +91,44 @@ def calculate_score(player, board):
         player2_score += board_weights[r][c]
   return player1_score - player2_score
       
-#should return score, move
-def dfs(board, depth, max, player):
+def dfs(board, depth, MAX, player, a, b):
+  """
+  Finds the optimal move by doing an adjusted depth first search and maximizing the value of the predicted boards. Stops searching a branch when it finds a higher scoring subtree.
+  """
   if depth == 0:
-    return calculate_score(player, board), None #if we reach depth limit return the board's score
+    return calculate_score(player, board), None 
   moves = get_all_moves(player, board)
-  if not moves: #if no moves, return current score
+  if not moves:
     return calculate_score(player, board), None
-  turn = None #tracks optimal move
+  high_score = float("-inf") if MAX else float ("-inf")
+  turn = None 
 
-  if max: #find highest score 
-    max_score = float('-inf')
-    for move in moves:
-      sim_board = simulated_board(move, player, board)
-      curr_score, _ = dfs(sim_board, depth - 1, False, player)
-      if curr_score > max_score:
-        max_score = curr_score
+  for move in moves:
+    sim_board = simulated_board(move, player, board)
+    curr_score, _ = dfs(sim_board, depth - 1, False, player, a, b)
+    if MAX:
+      if curr_score > high_score:
+        high_score = curr_score
         turn = move 
-    return max_score, turn 
-  else: #assumes opponent plays optimally
-    min_score = float('inf') #the UI had 64 squares i think 
-    for move in moves:
-      sim_board = simulated_board(move, player, board)
-      curr_score, _ = dfs(sim_board, depth - 1, True, player)
-      if curr_score < min_score:
-        min_score = curr_score
+      a = max(a, curr_score)
+    else: #assumes opponent plays optimally
+      if curr_score < high_score:
+        high_score = curr_score
         turn = move 
-    return min_score, turn 
+      b = min(b, curr_score)
+    if b <= a:
+      break
+  return high_score, turn 
 
-#this output feeds into prepare response 
 def get_move(player, board):
-  _, move = dfs(board, 3, True, player) #this also slow 
+  """
+  Plays the optimal move based on the above dfs function, and if no optimal move plays a random valid move. 
+  """
+  _, move = dfs(board, 7, True, player, float('-inf'), float('inf')) #7 seems to be the max depth without performance issues
   if move:
     return move
   else:
-    return random.choice(get_all_moves(player, board)) #in case fails might not need gotta check later
+    return random.choice(get_all_moves(player, board)) 
  
 def prepare_response(move):
   response = '{}\n'.format(move).encode()
@@ -128,12 +152,10 @@ if __name__ == "__main__":
       maxTurnTime = json_data['maxTurnTime']
       player = json_data['player']
       print(player, maxTurnTime, board)
-
       move = get_move(player, board)
       if move is None:
         print("No valid moves")
         continue 
-
       response = prepare_response(move)
       sock.sendall(response)
   finally:
