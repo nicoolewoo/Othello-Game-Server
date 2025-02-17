@@ -94,6 +94,7 @@ def calculate_score(player, board):
 def dfs(board, depth, MAX, player, a, b):
   """
   Finds the optimal move by doing an adjusted depth first search and maximizing the value of the predicted boards. Stops searching a branch when it finds a higher scoring subtree.
+  a is the max score achieveable, and b is the score the opponent can keep us under by playing other moves.
   """
   if depth == 0:
     return calculate_score(player, board), None 
@@ -105,7 +106,7 @@ def dfs(board, depth, MAX, player, a, b):
 
   for move in moves:
     sim_board = simulated_board(move, player, board)
-    curr_score, _ = dfs(sim_board, depth - 1, False, player, a, b)
+    curr_score, _ = dfs(sim_board, depth - 1, not MAX, player, a, b)
     if MAX:
       if curr_score > high_score:
         high_score = curr_score
