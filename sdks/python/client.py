@@ -95,6 +95,16 @@ def dfs(board, depth, MAX, player, a, b):
   """
   Finds the optimal move by doing an adjusted depth first search and maximizing the value of the predicted boards. Stops searching a branch when it finds a higher scoring subtree.
   a is the max score achieveable, and b is the score the opponent can keep us under by playing other moves.
+
+  Parameters:
+  - board (2D array): current orthello board
+  - depth (int): remaining depth in tree
+  - MAX (bool): true if player's turn, false if opponent
+  - a (float): best score for maximizing player
+  - b (float): best score for minimizing player
+  Returns:
+  - high_score (int): best score from current state
+  - turn (tuple or None): best move or none if there isn't one
   """
   if depth == 0:
     return calculate_score(player, board), None 
