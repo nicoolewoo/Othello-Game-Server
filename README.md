@@ -1,9 +1,3 @@
-# AOthello
-
-Welcome to this year's Atomic Accelerator challenge. You'll be creating a bot to play the game of Othello!
-
-To begin, clone this repository.
-
 ## Usage
 
 To run the game, you'll need a recent Java VM (we recommend Java 17). Use a terminal/command line tool to invoke the game:
@@ -52,12 +46,6 @@ Options:
   -h, --help
 ```
 
-## Starter Kits
-
-Look under the `/sdks` directory to find starter kits for C#, Java, Javascript, and Python. If you'd rather use a different language - feel free to do so and you can use the starter kits as a reference.
-
-The starter kit implementations will connect to the game server, read a board state, and then send a response. You'll need to modify them to analyze the game state and return an optimal move.
-
 ## Moves
 
 When the game server starts, it will wait for players to connect, then begin executing moves until it determines a winner.
@@ -80,9 +68,4 @@ Be sure to terminate your response with the newline, otherwise your move will ti
 
 Returning an invalid move will forfeit the game. Timing out (the default timeout is 15 seconds) will also forfeit the game.
 
-## License
 
-Copyright © 2018
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
